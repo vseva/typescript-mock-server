@@ -7,16 +7,16 @@ const smartPrimitives = require('./smartPrimitives');
 const parser = new TypescriptParser();
 
 const ARRAY_LENGTH = 5;
-const RECRUITMENT_BACKEND_SCHEMA = path.resolve(__dirname, '../product-recruitment-app/src/types/json-rpc.ts');
+const RECRUITMENT_BACKEND_SCHEMA = path.resolve(__dirname, '../product-recruitment-app/recruitment/types/json-rpc.ts');
 const METHODS_ROOT = 'IJsonRpcMethods';
 
-const isArray = methodDeclaration => {
-  return methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
-};
+const isGlobalPermissionsRequest = (methodName) => methodName === 'global-permissions';
+const isEntityPermissionsRequest = (methodName) => methodName === 'entity-permissions';
 
+const isArray = methodDeclaration => methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
 const isPrimitive = (type) => type === 'string';
 
-module.exports = async methodName => {
+module.exports = async (methodName, methodParams) => {
   const parsed = await parser.parseFile(RECRUITMENT_BACKEND_SCHEMA, '');
   const { declarations } = parsed;
 
@@ -28,31 +28,26 @@ module.exports = async methodName => {
   const isArrayReturned = isArray(methodDeclaration.type);
   const returnedType = usages[2];
 
+  /* если "ручка" возвращает не интерфейс а строку или массив строк */
   if (isPrimitive(returnedType)) {
     if (usages[3] !== undefined) {
-      /* если возвращается string[] то парсится так
+      /* если "ручка" возвращает string[]
       * ['params',
       * 'IJsonRpcMethodGetPhonesOfCandidateByApplicationIdRequest',
       * 'string',
-      * '']
-      * а если возвращается string то парсится так
-      * ['params',
-      * 'IJsonRpcMethodGetPhonesOfCandidateByApplicationIdRequest',
-      * 'string']
-      * */
-      const result = [];
-
-      for (let i = 0; i <= ARRAY_LENGTH; i++) {
-        result.push(smartPrimitives(returnedType, methodName));
-      }
-
-      return result;
+      * ''] */
+      return Array.from(new Array(ARRAY_LENGTH)).map(() => smartPrimitives(returnedType, methodName));
     }
 
+    /* если возвращает string
+     * ['params',
+     * 'IJsonRpcMethodGetPhonesOfCandidateByApplicationIdRequest',
+     * 'string']
+     * */
     return smartPrimitives(returnedType, methodName);
   }
 
-  const params = {
+  const mockParams = {
     files: [[RECRUITMENT_BACKEND_SCHEMA, readFileSync(RECRUITMENT_BACKEND_SCHEMA).toString()]],
     interfaces: [returnedType],
     output: 'object',
@@ -60,14 +55,37 @@ module.exports = async methodName => {
   };
 
   if (!isArrayReturned) {
-    return mock(params)[returnedType];
+    return mock(mockParams)[returnedType];
   }
 
-  const result = [];
+  if (isGlobalPermissionsRequest(methodName)) {
+    const requestedEntities = methodParams.entityTypes;
 
-  for (let i = 0; i <= ARRAY_LENGTH; i++) {
-    result.push(mock(params)[returnedType]);
+    return Array.from(new Array(requestedEntities.length))
+        .map((el, idx) => {
+          const mocked = mock(mockParams)[returnedType];
+
+          return {
+            ...mocked,
+            entityType: requestedEntities[idx],
+          };
+        });
   }
 
-  return result;
+  if (isEntityPermissionsRequest(methodName)) {
+    const requestedEntities = methodParams.entities;
+
+    return Array.from(new Array(requestedEntities.length))
+        .map((el, idx) => {
+          const mocked = mock(mockParams)[returnedType];
+
+          return {
+            ...mocked,
+            entityType: requestedEntities[idx].entityType,
+            entityId: requestedEntities[idx].entityId,
+          };
+        });
+  }
+
+  return Array.from(new Array(ARRAY_LENGTH)).map(() => mock(mockParams)[returnedType]);;
 };

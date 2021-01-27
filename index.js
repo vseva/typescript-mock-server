@@ -24,7 +24,8 @@ app.post('/api', async (req, res) => {
   const response = [];
 
   for (let i = 0; i < req.body.length; i++) {
-    const result = await parser(req.body[i].method);
+    const call = req.body[i];
+    const result = await parser(call.method, call.params);
 
     response.push({
       jsonrpc: '2.0',
