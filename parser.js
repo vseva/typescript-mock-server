@@ -54,6 +54,13 @@ module.exports = async (methodName, methodParams) => {
     isOptionalAlwaysEnabled: true,
   };
 
+  if (methodName === 'get-requisition-short-info') {
+    return {
+      ...mock(mockParams)[returnedType],
+      id: methodParams['job-requisition-id'],
+    };
+  }
+
   if (!isArrayReturned) {
     return mock(mockParams)[returnedType];
   }

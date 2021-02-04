@@ -6,6 +6,10 @@ const parser = require('./parser');
 
 const PORT = 6007;
 
+
+const getMethodNames = (reqBody) => reqBody.map(m => m.method);
+
+
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -19,18 +23,21 @@ app.get('/test', async (req, res) => {
 });
 
 app.post('/api', async (req, res) => {
-  if (!req.body) return {};
+  const request = req.body;
+
+  if (!request) return {};
 
   const response = [];
+  //const methodNames = getMethodNames(request);
 
-  for (let i = 0; i < req.body.length; i++) {
-    const call = req.body[i];
-    const result = await parser(call.method, call.params);
+  for (let i = 0; i < request.length; i++) {
+    const { method, params, id } = request[i];
+    const result = await parser(method, params);
 
     response.push({
       jsonrpc: '2.0',
-      id: req.body[i].id,
       result,
+      id,
     });
   }
 
