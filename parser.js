@@ -7,7 +7,10 @@ const smartPrimitives = require('./smartPrimitives');
 const parser = new TypescriptParser();
 
 const ARRAY_LENGTH = 5;
-const RECRUITMENT_BACKEND_SCHEMA = path.resolve(__dirname, '../product-recruitment-app/recruitment/types/json-rpc.ts');
+const SCHEMAS = {
+  rec: path.resolve(__dirname, '../product-recruitment-app/recruitment/types/json-rpc.ts'),
+  can: path.resolve(__dirname, '../product-recruitment-app/candidate/types/json-rpc.ts'),
+};
 const METHODS_ROOT = 'IJsonRpcMethods';
 
 const isGlobalPermissionsRequest = (methodName) => methodName === 'global-permissions';
@@ -16,8 +19,12 @@ const isEntityPermissionsRequest = (methodName) => methodName === 'entity-permis
 const isArray = methodDeclaration => methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
 const isPrimitive = (type) => type === 'string';
 
-module.exports = async (methodName, methodParams) => {
-  const parsed = await parser.parseFile(RECRUITMENT_BACKEND_SCHEMA, '');
+module.exports = async (methodName, methodParams, app) => {
+  const SCHEMA = SCHEMAS[app];
+
+  if (!SCHEMA) throw new Error('json-rpc schema not found');
+
+  const parsed = await parser.parseFile(SCHEMA, '');
   const { declarations } = parsed;
 
   const jsonRpcMethods = declarations.find(d => d.name === METHODS_ROOT);
@@ -48,7 +55,7 @@ module.exports = async (methodName, methodParams) => {
   }
 
   const mockParams = {
-    files: [[RECRUITMENT_BACKEND_SCHEMA, readFileSync(RECRUITMENT_BACKEND_SCHEMA).toString()]],
+    files: [[SCHEMA, readFileSync(SCHEMA).toString()]],
     interfaces: [returnedType],
     output: 'object',
     isOptionalAlwaysEnabled: true,
