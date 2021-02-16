@@ -1,5 +1,5 @@
 const { TypescriptParser } = require('typescript-parser');
-const { mock } = require('intermock');
+const { mock } = require('pdbr-intermock');
 const path = require('path');
 const { readFileSync } = require('fs');
 const smartPrimitives = require('./smartPrimitives');
@@ -101,5 +101,5 @@ module.exports = async (methodName, methodParams, app) => {
         });
   }
 
-  return Array.from(new Array(ARRAY_LENGTH)).map(() => mock(mockParams)[returnedType]);;
+  return Array.from(new Array(ARRAY_LENGTH)).map(() => mock(mockParams)[returnedType]);
 };

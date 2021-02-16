@@ -14,8 +14,8 @@
     "express": "^4.17.1",
     "faker": "^5.1.0",
     "fs": "0.0.1-security",
-    "intermock": "^0.2.5",
     "path": "^0.12.7",
+    "pdbr-intermock": "^0.1.0",
     "typescript-parser": "^2.6.1"
   }
 }
