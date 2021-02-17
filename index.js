@@ -1,17 +1,41 @@
+const path = require('path');
+const { readFileSync } = require('fs');
 const express = require('express');
 const cors = require('cors');
-const app = express();
 const bodyParser = require('body-parser');
 const parser = require('./parser');
+const { TypescriptParser } = require('typescript-parser');
 
+const typeScriptParser = new TypescriptParser();
+const app = express();
 const PORT = 6007;
-
-
-const getMethodNames = (reqBody) => reqBody.map(m => m.method);
-
+const METHODS_ROOT = 'IJsonRpcMethods';
+const SCHEMAS = {
+  rec: path.resolve(__dirname, '../product-recruitment-app/recruitment/types/json-rpc.ts'),
+  can: path.resolve(__dirname, '../product-recruitment-app/candidate/types/json-rpc.ts'),
+};
 
 app.use(cors());
 app.use(bodyParser.json());
+
+const typesCache = () => {
+  const cache = {};
+
+  return async (app) => {
+    if (!cache[app]) {
+      const SCHEMA = SCHEMAS[app];
+      const { declarations } = await typeScriptParser.parseFile(SCHEMA, '');
+      const methods = declarations.find(d => d.name === METHODS_ROOT);
+      const files = [[SCHEMA, readFileSync(SCHEMA).toString()]];
+
+      cache[app] = { methods, files };
+    }
+
+    return cache[app];
+  }
+}
+
+const cache = typesCache();
 
 const apiResponse = async (req, res, app) => {
   const request = req.body;
@@ -19,11 +43,16 @@ const apiResponse = async (req, res, app) => {
   if (!request) return {};
 
   const response = [];
-  //const methodNames = getMethodNames(request);
+  const { methods, files } = await cache(app);
 
   for (let i = 0; i < request.length; i++) {
     const { method, params, id } = request[i];
-    const result = await parser(method, params, app);
+    const result = await parser({
+      methodName: method,
+      methodParams: params,
+      methods,
+      files,
+    });
 
     response.push({
       jsonrpc: '2.0',
@@ -45,4 +74,4 @@ app.post('/mock-api-can', (req, res) => {
 
 app.listen(PORT);
 
-console.log(`Express started on port ${PORT}`);
+console.log(`mock started on port ${PORT}`);

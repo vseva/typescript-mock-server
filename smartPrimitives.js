@@ -1,5 +1,3 @@
-const faker = require('faker');
-
 const fakePhoneNumber = () => `+79${Math.floor(Math.random() * 1000000000)}`;
 
 module.exports = (type, method) => {
@@ -9,7 +7,5 @@ module.exports = (type, method) => {
         }
     }
 
-    console.log('not caught smart primitive', type, method);
-
-    return faker.fake('{{lorem.sentence}}');
+    return `[smartPrimitives.js type: ${type}, method: ${method}]`;
 };
