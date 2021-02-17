@@ -1,17 +1,11 @@
 const { TypescriptParser } = require('typescript-parser');
 const { mock } = require('pdbr-intermock');
-const path = require('path');
-const { readFileSync } = require('fs');
+
 const smartPrimitives = require('./smartPrimitives');
 
 const parser = new TypescriptParser();
 
 const ARRAY_LENGTH = 5;
-const SCHEMAS = {
-  rec: path.resolve(__dirname, '../product-recruitment-app/recruitment/types/json-rpc.ts'),
-  can: path.resolve(__dirname, '../product-recruitment-app/candidate/types/json-rpc.ts'),
-};
-const METHODS_ROOT = 'IJsonRpcMethods';
 
 const isGlobalPermissionsRequest = (methodName) => methodName === 'global-permissions';
 const isEntityPermissionsRequest = (methodName) => methodName === 'entity-permissions';
@@ -19,16 +13,8 @@ const isEntityPermissionsRequest = (methodName) => methodName === 'entity-permis
 const isArray = methodDeclaration => methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
 const isPrimitive = (type) => type === 'string';
 
-module.exports = async (methodName, methodParams, app) => {
-  const SCHEMA = SCHEMAS[app];
-
-  if (!SCHEMA) throw new Error('json-rpc schema not found');
-
-  const parsed = await parser.parseFile(SCHEMA, '');
-  const { declarations } = parsed;
-
-  const jsonRpcMethods = declarations.find(d => d.name === METHODS_ROOT);
-  const methodDeclaration = jsonRpcMethods.properties.find(d => d.name === methodName);
+module.exports = async ({ methodName, methodParams, methods, files }) => {
+  const methodDeclaration = methods.properties.find(d => d.name === methodName);
   const parsedMethod = await parser.parseSource(methodDeclaration.type);
 
   const { usages } = parsedMethod;
@@ -55,7 +41,7 @@ module.exports = async (methodName, methodParams, app) => {
   }
 
   const mockParams = {
-    files: [[SCHEMA, readFileSync(SCHEMA).toString()]],
+    files,
     interfaces: [returnedType],
     output: 'object',
     isOptionalAlwaysEnabled: true,
