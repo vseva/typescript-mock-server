@@ -8,7 +8,7 @@ const parser = new TypescriptParser();
 const ARRAY_LENGTH = 5;
 
 const isGlobalPermissionsRequest = (methodName) => methodName === 'global-permissions';
-const isEntityPermissionsRequest = (methodName) => methodName === 'entity-permissions';
+const isEntityPermissionsRequest = (methodName) => methodName === 'entity-permissions' || methodName === 'entity-permissions-v2';
 
 const isArray = methodDeclaration => methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
 const isPrimitive = (type) => type === 'string';
