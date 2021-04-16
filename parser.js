@@ -14,6 +14,7 @@ const isRequisitionsRequest = (methodName) => methodName === 'get-requisitions';
 const isSbAndComplianceForMassApplicationRequest = (methodName) => methodName === 'get-security-and-compliance-for-mass-application';
 const isSbAndComplianceForNonMassApplicationRequest = (methodName) => methodName === 'get-candidate-security-and-compliance-comments';
 const isHireModelRequest = (methodName) => methodName === 'get-model-of-application-by-application-id';
+const isApplicationCompetenceRequest = (methodName) => 'get-job-application-competence';
 
 const isArray = methodDeclaration => methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
 const isPrimitive = (type) => type === 'string';
@@ -69,7 +70,6 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
         'можно нанимать',
         'не рекомендуется к трудоустройству',
         'есть замечания после проверки',
-        ''
       ]);
       mocked.compliance.complianceCheckDate = new Date(faker.date.recent());
       mocked.security.sbCheck = faker.random.arrayElement([
@@ -154,6 +154,14 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
       ]);
       return mocked;
     });
+  }
+
+  if(isApplicationCompetenceRequest(methodName)){
+      return Array.from(new Array(ARRAY_LENGTH)).map(() => {
+          const mocked = mock(mockParams)[returnedType];
+          mocked.value = faker.random.arrayElement([0, 50, 100]);
+          return mocked;
+      });
   }
 
   return Array.from(new Array(ARRAY_LENGTH)).map(() => mock(mockParams)[returnedType]);
