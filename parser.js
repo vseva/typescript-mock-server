@@ -14,22 +14,28 @@ const isRequisitionsRequest = (methodName) => methodName === 'get-requisitions';
 const isSbAndComplianceForMassApplicationRequest = (methodName) => methodName === 'get-security-and-compliance-for-mass-application';
 const isSbAndComplianceForNonMassApplicationRequest = (methodName) => methodName === 'get-candidate-security-and-compliance-comments';
 const isHireModelRequest = (methodName) => methodName === 'get-model-of-application-by-application-id';
-const isApplicationCompetenceRequest = (methodName) => 'get-job-application-competence';
+const isApplicationCompetenceRequest = (methodName) => methodName === 'get-job-application-competence';
 
 const isArray = methodDeclaration => methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
 const isPrimitive = (type) => type === 'string';
 
 module.exports = async ({ methodName, methodParams, methods, files }) => {
-  const methodDeclaration = methods.properties.find(d => d.name === methodName);
-  const parsedMethod = await parser.parseSource(methodDeclaration.type);
+  const doubleStringMethodName = `'${methodName}'`;
+  const methodDeclaration = methods.find(method => {
+      const methodProp = method.properties.find(prop => prop.name === 'method');
 
-  const { usages } = parsedMethod;
-  const isArrayReturned = isArray(methodDeclaration.type);
-  const returnedType = usages[2];
+      return methodProp && methodProp.type === doubleStringMethodName;
+  });
+
+  const methodResponse = methodDeclaration.properties.find(prop => prop.name === 'response');
+  const parsedMethodResponse = await parser.parseSource(methodResponse.type);
+  const returnedStructure = methodResponse.type;
+  const isArrayReturned = isArray(returnedStructure);
+  const returnedType = isArrayReturned ? returnedStructure.split('[]')[0] : returnedStructure;
 
   /* если "ручка" возвращает не интерфейс а строку или массив строк */
   if (isPrimitive(returnedType)) {
-    if (usages[3] !== undefined) {
+    if (parsedMethodResponse.usages[3] !== undefined) {
       /* если "ручка" возвращает string[]
       * ['params',
       * 'IJsonRpcMethodGetPhonesOfCandidateByApplicationIdRequest',
@@ -62,7 +68,6 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
   }
 
   if (!isArrayReturned) {
-
     if(isSbAndComplianceForMassApplicationRequest(methodName)) {
       const mocked = mock(mockParams)[returnedType];
       mocked.compliance.complianceCheck = faker.random.arrayElement([
@@ -164,5 +169,7 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
       });
   }
 
-  return Array.from(new Array(ARRAY_LENGTH)).map(() => mock(mockParams)[returnedType]);
+  const mocked = mock(mockParams)[returnedType];
+
+  return Array.from(new Array(ARRAY_LENGTH)).map(() => mocked);
 };

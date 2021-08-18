@@ -9,7 +9,6 @@ const { TypescriptParser } = require('typescript-parser');
 const typeScriptParser = new TypescriptParser();
 const app = express();
 const PORT = 6007;
-const METHODS_ROOT = 'IJsonRpcMethods';
 const SCHEMAS = {
   rec: path.resolve(__dirname, '../product-recruitment-app/recruitment/types/json-rpc.ts'),
   can: path.resolve(__dirname, '../product-recruitment-app/candidate/types/json-rpc.ts'),
@@ -25,7 +24,7 @@ const typesCache = () => {
     if (!cache[app]) {
       const SCHEMA = SCHEMAS[app];
       const { declarations } = await typeScriptParser.parseFile(SCHEMA, '');
-      const methods = declarations.find(d => d.name === METHODS_ROOT);
+      const methods = declarations.filter(d => d.name.startsWith('IJsonRpcMethod'));
       const files = [[SCHEMA, readFileSync(SCHEMA).toString()]];
 
       cache[app] = { methods, files };
