@@ -1,0 +1,3 @@
+[submodule "intermock"]
+	path = intermock
+	url = git@github.com:vseva/intermock.git
