@@ -1,5 +1,5 @@
 const { TypescriptParser } = require('typescript-parser');
-const { mock } = require('pdbr-intermock');
+const { mock } = require('./intermock/build');
 const faker = require('faker');
 
 const smartPrimitives = require('./smartPrimitives');
@@ -153,8 +153,6 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
         return mocked;
       });
     default:
-      const mocked = mock(mockParams)[returnedType];
-
-      return arrayForMap.map(() => mocked);
+      return arrayForMap.map(() => mock(mockParams)[returnedType]);
   }
 };
