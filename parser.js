@@ -7,14 +7,7 @@ const smartPrimitives = require('./smartPrimitives');
 const parser = new TypescriptParser();
 
 const ARRAY_LENGTH = 5;
-
-const isGlobalPermissionsRequest = (methodName) => methodName === 'global-permissions';
-const isEntityPermissionsRequest = (methodName) => methodName === 'entity-permissions' || methodName === 'entity-permissions-v2';
-const isRequisitionsRequest = (methodName) => methodName === 'get-requisitions';
-const isSbAndComplianceForMassApplicationRequest = (methodName) => methodName === 'get-security-and-compliance-for-mass-application';
-const isSbAndComplianceForNonMassApplicationRequest = (methodName) => methodName === 'get-candidate-security-and-compliance-comments';
-const isHireModelRequest = (methodName) => methodName === 'get-model-of-application-by-application-id';
-const isApplicationCompetenceRequest = (methodName) => methodName === 'get-job-application-competence';
+const arrayForMap = Array.from(new Array(ARRAY_LENGTH));
 
 const isArray = methodDeclaration => methodDeclaration.indexOf('[]') === methodDeclaration.length - 2;
 const isPrimitive = (type) => type === 'string';
@@ -41,7 +34,7 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
       * 'IJsonRpcMethodGetPhonesOfCandidateByApplicationIdRequest',
       * 'string',
       * ''] */
-      return Array.from(new Array(ARRAY_LENGTH)).map(() => smartPrimitives(returnedType, methodName));
+      return arrayForMap.map(() => smartPrimitives(returnedType, methodName));
     }
 
     /* если возвращает string
@@ -60,65 +53,63 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
     isOptionalAlwaysEnabled: true,
   };
 
-  if (methodName === 'get-requisition-short-info') {
-    return {
-      ...mock(mockParams)[returnedType],
-      id: methodParams['job-requisition-id'],
-    };
-  }
-
+  /* если возвращается экземпляр интерфейса */
   if (!isArrayReturned) {
-    if(isSbAndComplianceForMassApplicationRequest(methodName)) {
-      const mocked = mock(mockParams)[returnedType];
-      mocked.compliance.complianceCheck = faker.random.arrayElement([
-        'в работе',
-        'можно нанимать',
-        'не рекомендуется к трудоустройству',
-        'есть замечания после проверки',
-      ]);
-      mocked.compliance.complianceCheckDate = new Date(faker.date.recent());
-      mocked.security.sbCheck = faker.random.arrayElement([
-        'в работе',
-        'можно нанимать',
-        'есть замечания после проверки',
-        'не рекомендуется к трудоустройству',
-        'ожидает проверки'
-      ]);
-      mocked.security.sbCheckDate = new Date(faker.date.recent());
-      return mocked;
-    }
-
-
-    if(isHireModelRequest(methodName)){
-      return faker.random.arrayElement([
+    switch(methodName) {
+      case 'get-requisition-short-info':
+        return {
+          ...mock(mockParams)[returnedType],
+          id: methodParams['job-requisition-id'],
+        };
+      case 'get-security-and-compliance-for-mass-application':
+        const mocked = mock(mockParams)[returnedType];
+        mocked.compliance.complianceCheck = faker.random.arrayElement([
+          'в работе',
+          'можно нанимать',
+          'не рекомендуется к трудоустройству',
+          'есть замечания после проверки',
+        ]);
+        mocked.compliance.complianceCheckDate = new Date(faker.date.recent());
+        mocked.security.sbCheck = faker.random.arrayElement([
+          'в работе',
+          'можно нанимать',
+          'есть замечания после проверки',
+          'не рекомендуется к трудоустройству',
+          'ожидает проверки'
+        ]);
+        mocked.security.sbCheckDate = new Date(faker.date.recent());
+        return mocked;
+      case 'get-model-of-application-by-application-id':
+        return faker.random.arrayElement([
           'GENERAL_EXTERNAL',
           'MASS_DIGITAL_EXTERNAL',
           'MASS_DIGITAL_STUDY',
           'GENERAL_INTERNAL',
-      ]);
+        ]);
+      default:
+        return mock(mockParams)[returnedType];
     }
-
-    return mock(mockParams)[returnedType];
   }
 
-  if (isGlobalPermissionsRequest(methodName)) {
-    const requestedEntities = methodParams.entityTypes;
+  /* если возвращается массив интерфейсов */
+  switch(methodName) {
+    case 'global-permissions':
+      const entityTypes = methodParams.entityTypes;
 
-    return Array.from(new Array(requestedEntities.length))
+      return Array.from(new Array(entityTypes.length))
         .map((el, idx) => {
           const mocked = mock(mockParams)[returnedType];
 
           return {
             ...mocked,
-            entityType: requestedEntities[idx],
+            entityType: entityTypes[idx],
           };
         });
-  }
+    case 'entity-permissions':
+    case 'entity-permissions-v2':
+      const requestedEntities = methodParams.entities;
 
-  if (isEntityPermissionsRequest(methodName)) {
-    const requestedEntities = methodParams.entities;
-
-    return Array.from(new Array(requestedEntities.length))
+      return Array.from(new Array(requestedEntities.length))
         .map((el, idx) => {
           const mocked = mock(mockParams)[returnedType];
 
@@ -128,48 +119,42 @@ module.exports = async ({ methodName, methodParams, methods, files }) => {
             entityId: requestedEntities[idx].entityId,
           };
         });
-  }
-
-  if(isRequisitionsRequest(methodName)){
-    return [1,2,3,4,5,6,7,8,9].map((groupId) => {
-      const mocked = mock(mockParams)[returnedType];
-      return {
-        ...mocked,
-        groupId
-      }
-    })
-  }
-
-  if(isSbAndComplianceForNonMassApplicationRequest(methodName)){
-    return Array.from(new Array(ARRAY_LENGTH)).map(() => {
-      const mocked = mock(mockParams)[returnedType];
-      mocked.security.processed = faker.random.arrayElement([
+    case 'get-requisitions':
+      return [1,2,3,4,5,6,7,8,9].map((groupId) => {
+        const mocked = mock(mockParams)[returnedType];
+        return {
+          ...mocked,
+          groupId
+        }
+      })
+    case 'get-candidate-security-and-compliance-comments':
+      return arrayForMap.map(() => {
+        const mocked = mock(mockParams)[returnedType];
+        mocked.security.processed = faker.random.arrayElement([
           'Проверен, есть замечания',
           'Трудоустройство не целесообразно',
           'Требуется дополнительное согласование комплаенс',
           'Сведений, препятствующих оформлению не найдено',
           'В работе',
-      ]);
-      mocked.compliance.processed = faker.random.arrayElement([
+        ]);
+        mocked.compliance.processed = faker.random.arrayElement([
           'В части предоставленной информации в анкете кандидат согласован',
           'Не рекомендуется к трудоустройству',
           'Согласован при условии выполнения рекомендаций',
           'Для принятия решения требуется дополнительная информация',
           'В работе',
-      ]);
-      return mocked;
-    });
-  }
-
-  if(isApplicationCompetenceRequest(methodName)){
-      return Array.from(new Array(ARRAY_LENGTH)).map(() => {
-          const mocked = mock(mockParams)[returnedType];
-          mocked.value = faker.random.arrayElement([0, 50, 100]);
-          return mocked;
+        ]);
+        return mocked;
       });
+    case 'get-job-application-competence':
+      return arrayForMap.map(() => {
+        const mocked = mock(mockParams)[returnedType];
+        mocked.value = faker.random.arrayElement([0, 50, 100]);
+        return mocked;
+      });
+    default:
+      const mocked = mock(mockParams)[returnedType];
+
+      return arrayForMap.map(() => mocked);
   }
-
-  const mocked = mock(mockParams)[returnedType];
-
-  return Array.from(new Array(ARRAY_LENGTH)).map(() => mocked);
 };
